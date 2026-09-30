@@ -135,39 +135,48 @@ canvas#sk{display:block;width:100%;aspect-ratio:16/10;touch-action:none;backgrou
 .toast.show{opacity:1}
 .hidden{display:none!important}
 
-/* ---------- PRINT ---------- */
-#printArea{display:none}
+/* ---------- PRINT / PDF ---------- */
+#printArea{display:none;background:#fff;color:#000;font-size:10.5pt;line-height:1.35}
+/* Offscreen-Rendering für PDF-Erzeugung: A4-Inhaltsbreite 186 mm ≈ 703 px */
+#printArea.render{display:block;position:fixed;left:-10000px;top:0;width:703px}
+#printArea.render .pp{padding-bottom:1px}
+#printArea .pp{page-break-after:always;break-after:page}
+#printArea .pp:last-child{page-break-after:auto;break-after:auto}
+#printArea .ph{font-size:15pt;font-weight:700;margin:0 0 6pt}
+#printArea .kopf{width:100%;border-collapse:collapse;margin-bottom:8pt}
+#printArea .kopf td{border:1px solid #000;padding:4pt 6pt;vertical-align:top}
+#printArea .kopf .k{font-size:8pt;color:#444;display:block}
+#printArea table.vl{width:100%;border-collapse:collapse}
+#printArea table.vl th,#printArea table.vl td{border:1px solid #000;padding:3pt 5pt;vertical-align:top;text-align:left}
+#printArea table.vl th{background:#eee}
+#printArea table.vl td.z{width:12mm;text-align:center}
+#printArea table.vl td.s{width:42mm}
+#printArea tr{break-inside:avoid}
+#printArea .box{border:1px solid #000;min-height:230mm;padding:6pt}
+#printArea .bl{white-space:pre-wrap;min-height:1.35em}
+#printArea .rgrid{display:flex;gap:8mm;font-size:8.6pt;line-height:1.3;align-items:flex-start}
+#printArea .rcol{flex:1;min-width:0}
+#printArea .rsec{margin-bottom:6pt}
+#printArea .rsec h4{font-size:10pt;margin:0 0 3pt;border-bottom:1.5px solid #000;padding-bottom:1pt}
+#printArea .rgrp{font-weight:700;margin:4pt 0 1pt;font-style:italic}
+#printArea .ritem{break-inside:avoid;margin-bottom:3pt}
+#printArea .ritem .l{font-weight:600}
+#printArea .rcols{display:grid;grid-template-columns:1fr 1fr;column-gap:4pt}
+#printArea .rscale{display:flex;flex-wrap:wrap;gap:0 8pt}
+#printArea .x{white-space:nowrap}
+#printArea .x.on{font-weight:700}
+#printArea .rnote{font-style:italic;margin-top:2pt;white-space:pre-wrap}
+#printArea .timg{max-width:100%;max-height:115mm;display:block;margin:0 auto 6pt;border:1px solid #000}
+#printArea .nb{margin-top:10pt;font-size:11pt}
 @media print{
   @page{size:A4;margin:14mm 12mm}
-  body{background:#fff;color:#000;font-size:10.5pt}
-  #app,.toast{display:none!important}
+  body{background:#fff;color:#000}
+  #app,.toast,.modal{display:none!important}
   #printArea{display:block}
-  .pp{page-break-after:always;break-after:page}
-  .pp:last-child{page-break-after:auto;break-after:auto}
-  .ph{font-size:15pt;font-weight:700;margin:0 0 6pt}
-  .kopf{width:100%;border-collapse:collapse;margin-bottom:8pt}
-  .kopf td{border:1px solid #000;padding:4pt 6pt;vertical-align:top}
-  .kopf .k{font-size:8pt;color:#444;display:block}
-  table.vl{width:100%;border-collapse:collapse}
-  table.vl th,table.vl td{border:1px solid #000;padding:3pt 5pt;vertical-align:top;text-align:left}
-  table.vl th{background:#eee}
-  table.vl td.z{width:12mm;text-align:center}
-  table.vl td.s{width:42mm}
-  .box{border:1px solid #000;min-height:230mm;padding:6pt;white-space:pre-wrap}
-  .rgrid{column-count:2;column-gap:8mm;font-size:8.6pt;line-height:1.3}
-  .rsec{break-inside:auto;margin-bottom:6pt}
-  .rsec h4{font-size:10pt;margin:0 0 3pt;border-bottom:1.5px solid #000;padding-bottom:1pt}
-  .rgrp{font-weight:700;margin:4pt 0 1pt;font-style:italic}
-  .ritem{break-inside:avoid;margin-bottom:3pt}
-  .ritem .l{font-weight:600}
-  .rcols{display:grid;grid-template-columns:1fr 1fr;column-gap:4pt}
-  .rscale{display:flex;flex-wrap:wrap;gap:0 8pt}
-  .x{white-space:nowrap}
-  .x.on{font-weight:700}
-  .rnote{font-style:italic;margin-top:2pt;white-space:pre-wrap}
-  .timg{max-width:100%;max-height:115mm;display:block;margin:0 auto 6pt;border:1px solid #000}
-  .nb{margin-top:10pt;font-size:11pt}
 }
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal .card{max-width:420px;width:100%;display:flex;flex-direction:column;gap:10px}
+.modal .btn{justify-content:center}
 </style>
 </head>
 <body>
@@ -384,7 +393,8 @@ function renderTop(){
     <div class="menu" id="emenu">
       <button class="btn" data-a="emenu">Export ▾</button>
       <div class="pop">
-        <button data-a="pdf">PDF / Drucken (Feedbackbogen)</button>
+        <button data-a="pdf">PDF erstellen (Feedbackbogen)</button>
+        <button data-a="print">Drucken…</button>
         <button data-a="mdshare">Markdown teilen / speichern</button>
         <button data-a="mdcopy">Markdown kopieren</button>
         <button data-a="delete" class="danger">Beobachtung löschen</button>
@@ -623,7 +633,7 @@ function buildPrint(o){
       <td><span class="k">Klasse</span>${esc(o.klasse)}</td><td><span class="k">Raum</span>${esc(o.raum)}</td>
       <td><span class="k">Stunde</span>${esc(o.stunde)}</td><td><span class="k">Datum</span>${fmtDate(o.datum)}</td></tr>
       <tr><td colspan="6"><span class="k">Thema</span>${esc(o.thema)}</td></tr></table>`;
-  const raster = RASTER.map(sec => `<div class="rsec"><h4>${esc(sec.s)}</h4>${sec.g.map(g => `${g.t ? `<div class="rgrp">${esc(g.t)}</div>` : ''}${g.i.map(it => {
+  const rsec = sec => `<div class="rsec"><h4>${esc(sec.s)}</h4>${sec.g.map(g => `${g.t ? `<div class="rgrp">${esc(g.t)}</div>` : ''}${g.i.map(it => {
     const v = o.checks[itemKey(sec, g, it)];
     let body;
     if(it.type === 'm'){
@@ -637,13 +647,14 @@ function buildPrint(o){
       }
     } else body = `<div class="rscale">${it.opts.map(x => X(v === x, x)).join('')}</div>`;
     return `<div class="ritem"><div class="l">${esc(it.label)}</div>${body}</div>`;
-  }).join('')}`).join('')}${o.notes[sec.s] ? `<div class="rnote">Anmerkung: ${esc(o.notes[sec.s])}</div>` : ''}</div>`).join('');
+  }).join('')}`).join('')}${o.notes[sec.s] ? `<div class="rnote">Anmerkung: ${esc(o.notes[sec.s])}</div>` : ''}</div>`;
+  const raster = `<div class="rcol">${RASTER.slice(0, 2).map(rsec).join('')}</div><div class="rcol">${RASTER.slice(2).map(rsec).join('')}</div>`;
   return `
   <section class="pp"><div class="ph">Feedbackbogen zum Unterrichtsbesuch</div>${kopf}
     <table class="vl"><thead><tr><th>Zeit</th><th>Inhalt/Struktur</th><th>Sozialform/Methode</th></tr></thead><tbody>
     ${es.length ? es.map(e => `<tr><td class="z">${esc(e.min)}</td><td>${esc(e.text).replace(/\n/g, '<br>')}</td><td class="s">${esc((e.meths || []).join(', '))}</td></tr>`).join('') : '<tr><td class="z"></td><td>–</td><td class="s"></td></tr>'}
     </tbody></table></section>
-  <section class="pp"><div class="ph">Sonstiges</div><div class="box">${esc(o.sonstiges)}</div></section>
+  <section class="pp"><div class="ph">Sonstiges</div><div class="box">${(o.sonstiges || '').split('\n').map(l => `<div class="bl">${esc(l)}</div>`).join('')}</div></section>
   <section class="pp"><div class="rgrid">${raster}</div></section>
   <section class="pp"><div class="ph">Tafelbild</div>
     ${o.photos.map(p => `<img class="timg" src="${p}">`).join('')}${o.sketch ? `<img class="timg" src="${o.sketch}">` : ''}
@@ -659,6 +670,81 @@ function printPdf(){
     window.print();
     setTimeout(() => { document.title = t; }, 500);
   });
+}
+
+/* PDF direkt im Browser erzeugen (window.print() funktioniert in iOS-Home-Bildschirm-Apps nicht) */
+function loadScript(src){
+  return new Promise((res, rej) => {
+    if(document.querySelector(`script[src="${src}"]`)) return res();
+    const sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = () => rej(new Error('Laden fehlgeschlagen: ' + src));
+    document.head.appendChild(sc);
+  });
+}
+function modal(html){
+  const m = document.createElement('div'); m.className = 'modal'; m.innerHTML = `<div class="card">${html}</div>`;
+  document.body.appendChild(m); return m;
+}
+let pdfBusy = false;
+async function makePdf(){
+  if(pdfBusy) return; pdfBusy = true;
+  flush();
+  const wait = modal('<h2 style="margin:0">PDF wird erstellt…</h2><p class="muted" style="margin:0">Einen Moment bitte.</p>');
+  const pa = $('#printArea');
+  try{
+    await Promise.all([loadScript('vendor/jspdf.umd.min.js'), loadScript('vendor/html2canvas.min.js')]);
+    pa.innerHTML = buildPrint(cur); pa.classList.add('render');
+    await Promise.all([...pa.querySelectorAll('img')].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+    const pdf = new window.jspdf.jsPDF({unit:'mm', format:'a4', compress:true});
+    const PXMM = 703 / 186, MARGIN = 12, PAGE_PX = Math.floor((297 - 2 * MARGIN) * PXMM), SCALE = 2;
+    let first = true;
+    for(const sec of pa.querySelectorAll('.pp')){
+      const canvas = await window.html2canvas(sec, {scale:SCALE, backgroundColor:'#ffffff', logging:false, useCORS:true});
+      const top0 = sec.getBoundingClientRect().top, H = sec.scrollHeight;
+      // Elemente, die nicht zerschnitten werden sollen
+      const blocks = [...sec.querySelectorAll('tr, .ritem, .rsec h4, .rgrp, .bl, .timg, .nb, .kopf, .ph')]
+        .map(el => { const r = el.getBoundingClientRect(); return [r.top - top0, r.bottom - top0]; });
+      let y = 0;
+      while(y < H - 2){
+        let end = Math.min(y + PAGE_PX, H);
+        if(end < H){
+          let moved = true;
+          while(moved){ moved = false; for(const [t, b] of blocks) if(t < end && b > end && t > y + 80){ end = t; moved = true; } }
+        }
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width; slice.height = Math.ceil((end - y) * SCALE);
+        const sctx = slice.getContext('2d'); sctx.fillStyle = '#fff'; sctx.fillRect(0, 0, slice.width, slice.height);
+        sctx.drawImage(canvas, 0, Math.floor(y * SCALE), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+        if(!first) pdf.addPage(); first = false;
+        pdf.addImage(slice.toDataURL('image/jpeg', .9), 'JPEG', MARGIN, MARGIN, 186, (end - y) / PXMM);
+        y = end;
+      }
+    }
+    const name = fileBase() + '.pdf';
+    const file = new File([pdf.output('blob')], name, {type:'application/pdf'});
+    wait.remove();
+    // Teilen braucht einen frischen Tipp des Nutzers, daher eigener Knopf
+    const m = modal(`<h2 style="margin:0">PDF ist fertig</h2><p class="muted" style="margin:0">${esc(name)}</p>
+      <button class="btn primary" data-pdf="share">Teilen / In Dateien sichern</button>
+      <button class="btn" data-pdf="open">Öffnen</button>
+      <button class="btn ghost" data-pdf="close">Schließen</button>`);
+    const url = URL.createObjectURL(file);
+    m.addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-pdf]'); if(!b && ev.target !== m) return;
+      const act = b ? b.dataset.pdf : 'close';
+      if(act === 'share'){
+        try{
+          if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); }
+          else { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); }
+        }catch(e){ if(e.name !== 'AbortError') toast('Teilen fehlgeschlagen: ' + e.message); }
+      }
+      if(act === 'open') window.open(url, '_blank');
+      if(act === 'close'){ m.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
+    });
+  }catch(e){
+    wait.remove(); alert('PDF konnte nicht erstellt werden: ' + e.message);
+  }finally{
+    pa.classList.remove('render'); pa.innerHTML = ''; pdfBusy = false;
+  }
 }
 
 async function exportBackup(){
@@ -700,7 +786,8 @@ document.addEventListener('click', async e => {
     case 'back': flush(); list = await DB.all(); renderList(); return;
     case 'timer': toggleTimer(); return;
     case 'treset': resetTimer(); return;
-    case 'pdf': printPdf(); return;
+    case 'pdf': makePdf(); return;
+    case 'print': printPdf(); return;
     case 'mdshare': shareMarkdown(); return;
     case 'mdcopy': copyMarkdown(); return;
     case 'backup': exportBackup(); return;
