@@ -281,7 +281,7 @@ let saveTimer = null;
 
 function newObs(){
   return { id: uid(), created: Date.now(), updated: Date.now(),
-    name:'', fach:'', klasse:'', datum: today(), thema:'', nachbesprechung:'',
+    name:'', fach:'', klasse:'', raum:'', stunde:'', datum: today(), thema:'', nachbesprechung:'',
     timer:{elapsed:0, runStart:null},
     entries:[], checks:{}, notes:{}, sonstiges:'', photos:[], sketch:null };
 }
@@ -303,6 +303,8 @@ function toggleTimer(){
   if(t.runStart){ t.elapsed += Date.now() - t.runStart; t.runStart = null; }
   else t.runStart = Date.now();
   save(); renderTop();
+  // Beim Starten/Fortsetzen direkt zum Verlauf wechseln
+  if(t.runStart && tab !== 'verlauf'){ tab = 'verlauf'; renderTab(); window.scrollTo(0, 0); }
 }
 function resetTimer(){
   if(!confirm('Stoppuhr auf 0 zurücksetzen?')) return;
@@ -343,11 +345,11 @@ function renderList(){
   </div></main>`;
   const draw = q => {
     q = (q || '').toLowerCase();
-    const f = items.filter(o => !q || [o.name, o.fach, o.klasse, o.thema, fmtDate(o.datum)].join(' ').toLowerCase().includes(q));
+    const f = items.filter(o => !q || [o.name, o.fach, o.klasse, o.raum, o.thema, fmtDate(o.datum)].join(' ').toLowerCase().includes(q));
     $('#cards').innerHTML = f.length ? `<div class="grid-list">${f.map(o => `
       <div class="card obs-card" data-open="${o.id}">
         <div class="n">${esc(o.name) || '<span class="muted">Ohne Namen</span>'}</div>
-        <div>${esc([o.fach, o.klasse].filter(Boolean).join(' · '))}</div>
+        <div>${esc([o.fach, o.klasse, o.stunde && String(o.stunde).replace(/\.$/, '') + '. Std.', o.raum && 'Raum ' + o.raum].filter(Boolean).join(' · '))}</div>
         <div class="muted">${esc(o.thema)}</div>
         <div class="row muted" style="font-size:13px;margin-top:6px">${fmtDate(o.datum)}<span class="spacer"></span>${o.entries.length} Einträge · ${countChecks(o).p}✓ ${countChecks(o).n}✗</div>
       </div>`).join('')}</div>`
@@ -418,7 +420,7 @@ function viewKopf(){
   return `<div class="card">
     <h2>Feedbackbogen zum Unterrichtsbesuch</h2>
     <div class="kgrid">
-      ${field('name', 'Name (Lehrkraft)')}${field('fach', 'Fach')}${field('klasse', 'Klasse')}${field('datum', 'Datum', 'date')}
+      ${field('name', 'Name (Lehrkraft)')}${field('fach', 'Fach')}${field('klasse', 'Klasse')}${field('raum', 'Raum')}${field('stunde', 'Stunde', 'text', 'z. B. 3')}${field('datum', 'Datum', 'date')}
     </div>
     <div style="margin-top:14px">${field('thema', 'Thema')}</div>
     <div class="kgrid" style="margin-top:14px">${field('nachbesprechung', 'Nachbesprechung am', 'date')}</div>
@@ -562,10 +564,10 @@ function fileBase(){ return `UB ${cur.datum || ''} ${cur.name || ''} ${cur.fach 
 function toMarkdown(o){
   const y = v => JSON.stringify(v || '');
   const L = [];
-  L.push('---', 'typ: Unterrichtsbesuch', `lehrkraft: ${y(o.name)}`, `fach: ${y(o.fach)}`, `klasse: ${y(o.klasse)}`,
+  L.push('---', 'typ: Unterrichtsbesuch', `lehrkraft: ${y(o.name)}`, `fach: ${y(o.fach)}`, `klasse: ${y(o.klasse)}`, `raum: ${y(o.raum)}`, `stunde: ${y(o.stunde)}`,
          `datum: ${o.datum || ''}`, `thema: ${y(o.thema)}`, `nachbesprechung: ${o.nachbesprechung || ''}`, 'tags: [unterrichtsbesuch]', '---', '');
   L.push(`# Unterrichtsbesuch ${o.name || ''} – ${o.fach || ''} ${o.klasse || ''}`.trim(), '');
-  L.push(`**Thema:** ${o.thema || '–'}  `, `**Datum:** ${fmtDate(o.datum)}  `, `**Nachbesprechung:** ${fmtDate(o.nachbesprechung) || '–'}`, '');
+  L.push(`**Thema:** ${o.thema || '–'}  `, `**Datum:** ${fmtDate(o.datum)}${o.stunde ? `, ${String(o.stunde).replace(/\.$/, '')}. Stunde` : ''}${o.raum ? `, Raum ${o.raum}` : ''}  `, `**Nachbesprechung:** ${fmtDate(o.nachbesprechung) || '–'}`, '');
   L.push('## Verlauf', '');
   if(o.entries.length){
     L.push('| Min. | Inhalt / Struktur | Sozialform / Methode |', '|---:|---|---|');
@@ -618,8 +620,9 @@ function buildPrint(o){
   const es = [...o.entries].sort((a, b) => (+a.min || 999) - (+b.min || 999));
   const kopf = `<table class="kopf"><tr>
       <td><span class="k">Name</span>${esc(o.name)}</td><td><span class="k">Fach</span>${esc(o.fach)}</td>
-      <td><span class="k">Klasse</span>${esc(o.klasse)}</td><td><span class="k">Datum</span>${fmtDate(o.datum)}</td></tr>
-      <tr><td colspan="4"><span class="k">Thema</span>${esc(o.thema)}</td></tr></table>`;
+      <td><span class="k">Klasse</span>${esc(o.klasse)}</td><td><span class="k">Raum</span>${esc(o.raum)}</td>
+      <td><span class="k">Stunde</span>${esc(o.stunde)}</td><td><span class="k">Datum</span>${fmtDate(o.datum)}</td></tr>
+      <tr><td colspan="6"><span class="k">Thema</span>${esc(o.thema)}</td></tr></table>`;
   const raster = RASTER.map(sec => `<div class="rsec"><h4>${esc(sec.s)}</h4>${sec.g.map(g => `${g.t ? `<div class="rgrp">${esc(g.t)}</div>` : ''}${g.i.map(it => {
     const v = o.checks[itemKey(sec, g, it)];
     let body;
