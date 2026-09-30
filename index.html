@@ -135,6 +135,26 @@ canvas#sk{display:block;width:100%;aspect-ratio:16/10;touch-action:none;backgrou
 .toast.show{opacity:1}
 .hidden{display:none!important}
 
+/* Medien */
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.mcard{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.mcard img{width:100%;height:220px;object-fit:contain;background:var(--surface2);border-radius:8px;display:block}
+.badge.k{background:var(--neu-bg);color:var(--neu)}
+
+/* Scanner */
+.scanner{position:fixed;inset:0;z-index:70;background:#111;color:#fff;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.sc-top,.sc-bottom{display:flex;gap:8px;align-items:center;padding:10px 16px;flex-wrap:wrap}
+.sc-bottom{justify-content:center}
+.sc-title{flex:1;text-align:center;font-weight:600;min-width:0}
+.sc-hint{color:#bbb;font-size:14px;flex-basis:100%;text-align:center}
+.sc-stage{flex:1;position:relative;min-height:0}
+.sc-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.scanner .btn{background:#2a2a2a;color:#fff;border-color:#444}
+.scanner .btn.primary{background:#2f7de1;border-color:#2f7de1}
+.scanner .chip{background:#2a2a2a;color:#fff;border-color:#555}
+.scanner .chip.on{background:#fff;color:#111;border-color:#fff}
+.scanner .chip.on::before{content:""}
+
 /* ---------- PRINT / PDF ---------- */
 #printArea{display:none;background:#fff;color:#000;font-size:10.5pt;line-height:1.35}
 /* Offscreen-Rendering für PDF-Erzeugung: A4-Inhaltsbreite 186 mm ≈ 703 px */
@@ -168,6 +188,11 @@ canvas#sk{display:block;width:100%;aspect-ratio:16/10;touch-action:none;backgrou
 #printArea .rnote{font-style:italic;margin-top:2pt;white-space:pre-wrap}
 #printArea .timg{max-width:100%;max-height:115mm;display:block;margin:0 auto 6pt;border:1px solid #000}
 #printArea .nb{margin-top:10pt;font-size:11pt}
+#printArea .mitem{break-inside:avoid;margin-bottom:8pt}
+#printArea .mitem img{max-width:100%;display:block;margin:0 auto;border:1px solid #999}
+#printArea .mitem img.photo{max-height:115mm}
+#printArea .mitem img.scan{max-height:235mm}
+#printArea .mcap{font-size:9pt;text-align:center;margin-top:2pt}
 @media print{
   @page{size:A4;margin:14mm 12mm}
   body{background:#fff;color:#000}
@@ -185,6 +210,7 @@ canvas#sk{display:block;width:100%;aspect-ratio:16/10;touch-action:none;backgrou
 <div class="toast" id="toast"></div>
 <input type="file" id="fileImport" accept="application/json,.json" class="hidden">
 <input type="file" id="filePhoto" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="filePick" accept="image/*" multiple class="hidden">
 
 <script>
 "use strict";
@@ -292,7 +318,7 @@ function newObs(){
   return { id: uid(), created: Date.now(), updated: Date.now(),
     name:'', fach:'', klasse:'', raum:'', stunde:'', datum: today(), thema:'', nachbesprechung:'',
     timer:{elapsed:0, runStart:null},
-    entries:[], checks:{}, notes:{}, sonstiges:'', photos:[], sketch:null };
+    entries:[], checks:{}, notes:{}, sonstiges:'', photos:[], sketch:null, media:[] };
 }
 function save(){
   if(!cur) return;
@@ -401,7 +427,7 @@ function renderTop(){
       </div>
     </div>
   </div>
-  <nav class="tabs">${[['kopf','Kopf'],['verlauf','Verlauf'],['raster','Raster'],['notizen','Sonstiges'],['tafel','Tafelbild']]
+  <nav class="tabs">${[['kopf','Kopf'],['verlauf','Verlauf'],['raster','Raster'],['notizen','Sonstiges'],['tafel','Tafelbild'],['medien','Medien']]
     .map(([k, l]) => `<button class="tab ${tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</nav>`;
   updateTimerDisplay();
 }
@@ -421,6 +447,7 @@ function renderTab(){
   if(tab === 'raster') b.innerHTML = viewRaster();
   if(tab === 'notizen') b.innerHTML = viewNotizen();
   if(tab === 'tafel'){ b.innerHTML = viewTafel(); initSketch(); }
+  if(tab === 'medien') b.innerHTML = viewMedien();
 }
 
 function field(k, label, type = 'text', ph = ''){
@@ -501,7 +528,8 @@ function viewNotizen(){
 function viewTafel(){
   return `<div class="card">
     <div class="row" style="margin-bottom:10px"><h2 style="margin:0;flex:1">Tafelbild – Fotos</h2>
-      <button class="btn primary" data-a="photo">📷 Foto aufnehmen</button></div>
+      <button class="btn primary" data-a="photo">📷 Foto aufnehmen</button>
+      <button class="btn" data-a="tscan">📄 Scannen</button></div>
     ${cur.photos.length ? `<div class="photos">${cur.photos.map((p, i) => `<div class="photo"><img src="${p}" alt="Tafelbild-Foto ${i + 1}"><button data-a="pdel" data-i="${i}" aria-label="Foto löschen">✕</button></div>`).join('')}</div>` : '<p class="muted">Noch keine Fotos.</p>'}
   </div>
   <div class="card" style="margin-top:14px">
@@ -552,21 +580,255 @@ function isBlank(cv){
   return true;
 }
 
-/* ================= Foto ================= */
-$('#filePhoto').addEventListener('change', async e => {
-  const f = e.target.files[0]; e.target.value = '';
-  if(!f) return;
-  const url = URL.createObjectURL(f);
-  const im = new Image();
-  im.onload = () => {
-    const max = 1800, s = Math.min(1, max / Math.max(im.width, im.height));
-    const c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
-    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    cur.photos.push(c.toDataURL('image/jpeg', .78)); URL.revokeObjectURL(url);
-    save(); renderTab(); toast('Foto gespeichert');
-  };
-  im.src = url;
-});
+/* ================= Foto & Scan ================= */
+// Was mit dem nächsten ausgewählten Bild passiert: tafel-photo | tafel-scan | media-photo | media-scan
+let pickAction = null, pickMinute = '';
+function startPick(action, fromLibrary){
+  pickAction = action; pickMinute = curMinute();
+  $(fromLibrary ? '#filePick' : '#filePhoto').click();
+}
+function loadImageFile(f, max){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const s = Math.min(1, max / Math.max(im.width, im.height));
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c);
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Bild konnte nicht geladen werden')); };
+    im.src = url;
+  });
+}
+function storeImage(action, src, minute){
+  if(action.startsWith('tafel')) cur.photos.push(src);
+  else cur.media.push({id:uid(), kind:action.endsWith('scan') ? 'scan' : 'photo', src, caption:'', min:minute, ts:Date.now()});
+  save(); renderTab();
+}
+async function handlePicked(e){
+  const files = [...e.target.files]; e.target.value = '';
+  const action = pickAction, minute = pickMinute;
+  if(!files.length || !action) return;
+  try{
+    if(action.endsWith('scan')){
+      const src = await loadImageFile(files[0], 2400);
+      openScanner(src, (data, next) => {
+        storeImage(action, data, minute); toast('Scan gespeichert');
+        if(next) startPick(action);
+      });
+    } else {
+      for(const f of files){ const c = await loadImageFile(f, 1800); storeImage(action, c.toDataURL('image/jpeg', .78), minute); }
+      toast(files.length > 1 ? `${files.length} Fotos gespeichert` : 'Foto gespeichert');
+    }
+  }catch(err){ alert(err.message); }
+}
+$('#filePhoto').addEventListener('change', handlePicked);
+$('#filePick').addEventListener('change', handlePicked);
+
+function viewMedien(){
+  const m = cur.media;
+  return `<div class="card">
+    <div class="row" style="margin-bottom:12px"><h2 style="margin:0;flex:1">Medien</h2>
+      <button class="btn primary" data-a="mphoto">📷 Foto</button>
+      <button class="btn primary" data-a="mscan">📄 Scannen</button>
+      <button class="btn" data-a="mpick">🖼 Aus Fotos</button></div>
+    ${m.length ? `<div class="media-grid">${m.map(x => `<div class="mcard">
+        <img src="${x.src}" alt="${x.kind === 'scan' ? 'Scan' : 'Foto'}">
+        <div class="row" style="gap:6px"><span class="badge k">${x.kind === 'scan' ? 'Scan' : 'Foto'}</span>${x.min ? `<span class="muted" style="font-size:13px">Min. ${x.min}</span>` : ''}
+          <span class="spacer"></span><button class="btn ghost danger" data-a="mdel" data-mid="${x.id}" aria-label="Löschen">✕</button></div>
+        <input type="text" data-mcap="${x.id}" value="${esc(x.caption)}" placeholder="Bildunterschrift…">
+      </div>`).join('')}</div>`
+      : '<p class="muted">Noch keine Fotos oder Scans. Scans eignen sich für Arbeitsblätter, Unterrichtsentwurf oder Schülerprodukte.</p>'}
+  </div>`;
+}
+
+/* ================= Scanner (Ecken, Perspektivkorrektur, Filter) ================= */
+function detectQuad(src){
+  const s = 240 / Math.max(src.width, src.height), w = Math.max(8, Math.round(src.width * s)), h = Math.max(8, Math.round(src.height * s));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'); x.drawImage(src, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, N = w * h, g = new Uint8Array(N), hist = new Array(256).fill(0);
+  for(let i = 0; i < N; i++){ const v = (d[i*4] * 299 + d[i*4+1] * 587 + d[i*4+2] * 114) / 1000 | 0; g[i] = v; hist[v]++; }
+  // Otsu-Schwelle: Papier ist meist heller als der Hintergrund
+  let sum = 0; for(let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, best = 0, th = 128;
+  for(let t = 0; t < 256; t++){
+    wB += hist[t]; if(!wB) continue; const wF = N - wB; if(!wF) break;
+    sumB += t * hist[t]; const mB = sumB / wB, mF = (sum - sumB) / wF, between = wB * wF * (mB - mF) ** 2;
+    if(between > best){ best = between; th = t; }
+  }
+  // größte helle Fläche
+  const lab = new Int32Array(N), stack = []; let bestLab = 0, bestSize = 0, n = 0;
+  for(let i = 0; i < N; i++){
+    if(g[i] <= th || lab[i]) continue;
+    n++; let size = 0; lab[i] = n; stack.push(i);
+    while(stack.length){
+      const p = stack.pop(); size++; const px = p % w, py = p / w | 0;
+      if(px > 0 && !lab[p-1] && g[p-1] > th){ lab[p-1] = n; stack.push(p-1); }
+      if(px < w-1 && !lab[p+1] && g[p+1] > th){ lab[p+1] = n; stack.push(p+1); }
+      if(py > 0 && !lab[p-w] && g[p-w] > th){ lab[p-w] = n; stack.push(p-w); }
+      if(py < h-1 && !lab[p+w] && g[p+w] > th){ lab[p+w] = n; stack.push(p+w); }
+    }
+    if(size > bestSize){ bestSize = size; bestLab = n; }
+  }
+  if(bestSize < N * .12 || bestSize > N * .97) return defaultQuad(src, .06);
+  let tl, tr, br, bl, a = Infinity, b = -Infinity, cc = -Infinity, dd = -Infinity;
+  for(let i = 0; i < N; i++){
+    if(lab[i] !== bestLab) continue; const px = i % w, py = i / w | 0;
+    if(px + py < a){ a = px + py; tl = [px, py]; }
+    if(px - py > b){ b = px - py; tr = [px, py]; }
+    if(px + py > cc){ cc = px + py; br = [px, py]; }
+    if(py - px > dd){ dd = py - px; bl = [px, py]; }
+  }
+  return [tl, tr, br, bl].map(([px, py]) => [Math.min(src.width, (px + .5) / s), Math.min(src.height, (py + .5) / s)]);
+}
+function defaultQuad(src, m){ return [[m, m], [1-m, m], [1-m, 1-m], [m, 1-m]].map(([a, b]) => [a * src.width, b * src.height]); }
+function homography(from, to){ // Abbildung to -> from (für Rückwärts-Sampling)
+  const A = [], b = [];
+  for(let i = 0; i < 4; i++){
+    const [x, y] = to[i], [u, v] = from[i];
+    A.push([x, y, 1, 0, 0, 0, -u*x, -u*y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v*x, -v*y]); b.push(v);
+  }
+  for(let c = 0; c < 8; c++){
+    let p = c; for(let r = c + 1; r < 8; r++) if(Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for(let r = 0; r < 8; r++){ if(r === c) continue; const f = A[r][c] / A[c][c]; for(let k = c; k < 8; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; }
+  }
+  return b.map((v, i) => v / A[i][i]);
+}
+function warp(src, q){
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  let W = Math.max(dist(q[0], q[1]), dist(q[3], q[2])), H = Math.max(dist(q[0], q[3]), dist(q[1], q[2]));
+  const k = Math.min(1, 2000 / Math.max(W, H)); W = Math.max(1, Math.round(W * k)); H = Math.max(1, Math.round(H * k));
+  const h = homography(q, [[0, 0], [W, 0], [W, H], [0, H]]);
+  const sw = src.width, sh = src.height, sd = src.getContext('2d').getImageData(0, 0, sw, sh).data;
+  const out = document.createElement('canvas'); out.width = W; out.height = H;
+  const octx = out.getContext('2d'), od = octx.createImageData(W, H), o = od.data;
+  for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
+    const X = x + .5, Y = y + .5, den = h[6] * X + h[7] * Y + 1;
+    let u = (h[0] * X + h[1] * Y + h[2]) / den - .5, v = (h[3] * X + h[4] * Y + h[5]) / den - .5;
+    u = u < 0 ? 0 : u > sw - 1.001 ? sw - 1.001 : u; v = v < 0 ? 0 : v > sh - 1.001 ? sh - 1.001 : v;
+    const x0 = u | 0, y0 = v | 0, fx = u - x0, fy = v - y0, i00 = (y0 * sw + x0) * 4, i01 = i00 + sw * 4, oi = (y * W + x) * 4;
+    for(let c = 0; c < 3; c++) o[oi+c] = (sd[i00+c] * (1-fx) + sd[i00+4+c] * fx) * (1-fy) + (sd[i01+c] * (1-fx) + sd[i01+4+c] * fx) * fy;
+    o[oi+3] = 255;
+  }
+  octx.putImageData(od, 0, 0); return out;
+}
+function rotate90(c){
+  const r = document.createElement('canvas'); r.width = c.height; r.height = c.width;
+  const x = r.getContext('2d'); x.translate(r.width, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0); return r;
+}
+function applyFilter(c, mode){
+  const W = c.width, H = c.height, out = document.createElement('canvas'); out.width = W; out.height = H;
+  const ctx = out.getContext('2d'); ctx.drawImage(c, 0, 0);
+  const img = ctx.getImageData(0, 0, W, H), d = img.data, N = W * H, g = new Float32Array(N);
+  for(let i = 0; i < N; i++) g[i] = .299 * d[i*4] + .587 * d[i*4+1] + .114 * d[i*4+2];
+  if(mode === 'doc'){
+    // Hintergrund (Papier) über großen Box-Blur schätzen und herausrechnen -> weißes Papier, dunkle Schrift
+    const r = Math.max(8, Math.round(Math.max(W, H) / 40)), W1 = W + 1, I = new Float64Array(W1 * (H + 1));
+    for(let y = 0; y < H; y++){ let rs = 0; for(let x = 0; x < W; x++){ rs += g[y*W+x]; I[(y+1)*W1+x+1] = I[y*W1+x+1] + rs; } }
+    for(let y = 0; y < H; y++){
+      const y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+      for(let x = 0; x < W; x++){
+        const x0 = Math.max(0, x - r), x1 = Math.min(W, x + r + 1);
+        const bg = (I[y1*W1+x1] - I[y0*W1+x1] - I[y1*W1+x0] + I[y0*W1+x0]) / ((y1 - y0) * (x1 - x0));
+        let n = (g[y*W+x] / Math.max(bg, 1) - .6) / .35; n = n < 0 ? 0 : n > 1 ? 1 : n;
+        const v = 255 * n, i = (y*W+x) * 4; d[i] = d[i+1] = d[i+2] = v;
+      }
+    }
+  } else {
+    // Tonwertkorrektur (1 % / 99 %)
+    const hist = new Array(256).fill(0); for(let i = 0; i < N; i++) hist[g[i] | 0]++;
+    let lo = 0, hi = 255, acc = 0; for(; lo < 255; lo++){ acc += hist[lo]; if(acc > N * .01) break; }
+    acc = 0; for(; hi > 0; hi--){ acc += hist[hi]; if(acc > N * .01) break; }
+    const k = 255 / Math.max(1, hi - lo);
+    for(let i = 0; i < N; i++){
+      if(mode === 'gray'){ const v = (g[i] - lo) * k; d[i*4] = d[i*4+1] = d[i*4+2] = v; }
+      else for(let c2 = 0; c2 < 3; c2++) d[i*4+c2] = (d[i*4+c2] - lo) * k;
+    }
+  }
+  ctx.putImageData(img, 0, 0); return out;
+}
+function openScanner(src, onSave){
+  let quad = detectQuad(src), step = 'corners', mode = 'doc', rot = 0, warped = null, result = null, drag = null, view = {s:1, ox:0, oy:0};
+  const ov = document.createElement('div'); ov.className = 'scanner';
+  ov.innerHTML = '<div class="sc-top"></div><div class="sc-stage"><canvas></canvas></div><div class="sc-bottom"></div>';
+  document.body.appendChild(ov);
+  const stage = ov.querySelector('.sc-stage'), cv = ov.querySelector('canvas');
+  const compute = () => { let w = warped; for(let i = 0; i < rot; i++) w = rotate90(w); result = applyFilter(w, mode); };
+  function bars(){
+    ov.querySelector('.sc-top').innerHTML = step === 'corners'
+      ? '<button class="btn" data-s="cancel">Abbrechen</button><div class="sc-title">Ecken anpassen</div><button class="btn primary" data-s="next">Weiter</button>'
+      : '<button class="btn" data-s="back">‹ Ecken</button><div class="sc-title">Scan prüfen</div><button class="btn primary" data-s="save">Speichern</button>';
+    ov.querySelector('.sc-bottom').innerHTML = step === 'corners'
+      ? '<div class="sc-hint">Blaue Punkte auf die Ecken des Dokuments ziehen.</div><button class="btn" data-s="auto">Automatisch</button><button class="btn" data-s="full">Ganzes Bild</button>'
+      : `${[['doc', 'Dokument'], ['gray', 'Graustufen'], ['color', 'Farbe']].map(([k, l]) => `<button class="chip ${mode === k ? 'on' : ''}" data-s="mode" data-m="${k}">${l}</button>`).join('')}
+         <button class="btn" data-s="rot">⟳ Drehen</button><button class="btn" data-s="savenext">Speichern + nächste Seite</button>`;
+  }
+  function draw(){
+    const r = stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height);
+    const img = step === 'corners' ? src : result, pad = 24;
+    const s = Math.min((r.width - 2 * pad) / img.width, (r.height - 2 * pad) / img.height);
+    const ox = (r.width - img.width * s) / 2, oy = (r.height - img.height * s) / 2;
+    view = {s, ox, oy};
+    ctx.drawImage(img, ox, oy, img.width * s, img.height * s);
+    if(step !== 'corners') return;
+    const P = quad.map(([x, y]) => [ox + x * s, oy + y * s]);
+    const path = () => { ctx.moveTo(P[0][0], P[0][1]); for(let i = 1; i < 4; i++) ctx.lineTo(P[i][0], P[i][1]); ctx.closePath(); };
+    ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.beginPath(); ctx.rect(0, 0, r.width, r.height); path(); ctx.fill('evenodd');
+    ctx.strokeStyle = '#4da3ff'; ctx.lineWidth = 2; ctx.beginPath(); path(); ctx.stroke();
+    P.forEach((p, i) => { ctx.beginPath(); ctx.arc(p[0], p[1], i === drag ? 17 : 13, 0, Math.PI * 2); ctx.fillStyle = 'rgba(77,163,255,.35)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke(); });
+    if(drag !== null){ // Lupe, damit der Finger die Ecke nicht verdeckt
+      const L = 140, z = 3, [qx, qy] = quad[drag], srcSize = L / (s * z);
+      const lx = P[drag][0] < r.width / 2 ? r.width - L - 12 : 12, ly = 12;
+      ctx.save(); ctx.beginPath(); ctx.rect(lx, ly, L, L); ctx.clip();
+      ctx.fillStyle = '#000'; ctx.fillRect(lx, ly, L, L);
+      ctx.drawImage(src, qx - srcSize / 2, qy - srcSize / 2, srcSize, srcSize, lx, ly, L, L);
+      ctx.strokeStyle = '#4da3ff'; ctx.lineWidth = 1.5; ctx.beginPath();
+      ctx.moveTo(lx + L / 2, ly); ctx.lineTo(lx + L / 2, ly + L); ctx.moveTo(lx, ly + L / 2); ctx.lineTo(lx + L, ly + L / 2); ctx.stroke();
+      ctx.restore(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(lx, ly, L, L);
+    }
+  }
+  const local = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.addEventListener('pointerdown', e => {
+    if(step !== 'corners') return;
+    const [x, y] = local(e); let best = null, bd = 50;
+    quad.forEach(([qx, qy], i) => { const dd = Math.hypot(view.ox + qx * view.s - x, view.oy + qy * view.s - y); if(dd < bd){ bd = dd; best = i; } });
+    if(best === null) return;
+    drag = best; cv.setPointerCapture(e.pointerId); draw();
+  });
+  cv.addEventListener('pointermove', e => {
+    if(drag === null) return;
+    const [x, y] = local(e);
+    quad[drag] = [Math.max(0, Math.min(src.width, (x - view.ox) / view.s)), Math.max(0, Math.min(src.height, (y - view.oy) / view.s))];
+    draw();
+  });
+  const up = e => { if(drag === null) return; drag = null; try{ cv.releasePointerCapture(e.pointerId); }catch{} draw(); };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  const onResize = () => draw();
+  window.addEventListener('resize', onResize);
+  const close = () => { window.removeEventListener('resize', onResize); ov.remove(); };
+  ov.addEventListener('click', e => {
+    const b = e.target.closest('[data-s]'); if(!b) return;
+    switch(b.dataset.s){
+      case 'cancel': close(); return;
+      case 'auto': quad = detectQuad(src); break;
+      case 'full': quad = defaultQuad(src, 0); break;
+      case 'next': warped = warp(src, quad); compute(); step = 'preview'; bars(); break;
+      case 'back': step = 'corners'; bars(); break;
+      case 'mode': mode = b.dataset.m; compute(); bars(); break;
+      case 'rot': rot = (rot + 1) % 4; compute(); break;
+      case 'save': case 'savenext': {
+        const data = result.toDataURL('image/jpeg', mode === 'color' ? .82 : .85);
+        close(); onSave(data, b.dataset.s === 'savenext'); return;
+      }
+    }
+    draw();
+  });
+  bars(); requestAnimationFrame(draw);
+}
 
 /* ================= Export ================= */
 function fileBase(){ return `UB ${cur.datum || ''} ${cur.name || ''} ${cur.fach || ''}`.replace(/\s+/g, ' ').replace(/[\\/:*?"<>|]/g, '').trim(); }
@@ -607,7 +869,9 @@ function toMarkdown(o){
     if(lines.length) L.push(`### ${sec.s}`, '', ...lines, '');
   }
   L.push('## Sonstiges', '', o.sonstiges || '_–_', '');
+  const med = o.media || [];
   L.push('## Tafelbild', '', (o.photos.length || o.sketch) ? `${o.photos.length} Foto(s)${o.sketch ? ' + Skizze' : ''} – siehe PDF-Export.` : '_–_', '');
+  L.push('## Medien', '', med.length ? med.map((m, i) => `${i + 1}. ${m.kind === 'scan' ? 'Scan' : 'Foto'}${m.min ? ` (Min. ${m.min})` : ''}${m.caption ? `: ${m.caption}` : ''}`).join('\n') + '\n\n_Bilder siehe PDF-Export._' : '_–_', '');
   return L.join('\n');
 }
 
@@ -659,7 +923,9 @@ function buildPrint(o){
   <section class="pp"><div class="ph">Tafelbild</div>
     ${o.photos.map(p => `<img class="timg" src="${p}">`).join('')}${o.sketch ? `<img class="timg" src="${o.sketch}">` : ''}
     ${!o.photos.length && !o.sketch ? '<div class="box" style="min-height:200mm"></div>' : ''}
-    <div class="nb">Nachbesprechung am: ${fmtDate(o.nachbesprechung) || '_____________________'}</div></section>`;
+    <div class="nb">Nachbesprechung am: ${fmtDate(o.nachbesprechung) || '_____________________'}</div></section>
+  ${(o.media || []).length ? `<section class="pp"><div class="ph">Anlagen</div>${o.media.map((m, i) => `<div class="mitem"><img class="${m.kind === 'scan' ? 'scan' : 'photo'}" src="${m.src}">
+    <div class="mcap">${i + 1}. ${m.kind === 'scan' ? 'Scan' : 'Foto'}${m.min ? ` · Min. ${m.min}` : ''}${m.caption ? ` – ${esc(m.caption)}` : ''}</div></div>`).join('')}</section>` : ''}`;
 }
 function printPdf(){
   flush();
@@ -701,7 +967,7 @@ async function makePdf(){
       const canvas = await window.html2canvas(sec, {scale:SCALE, backgroundColor:'#ffffff', logging:false, useCORS:true});
       const top0 = sec.getBoundingClientRect().top, H = sec.scrollHeight;
       // Elemente, die nicht zerschnitten werden sollen
-      const blocks = [...sec.querySelectorAll('tr, .ritem, .rsec h4, .rgrp, .bl, .timg, .nb, .kopf, .ph')]
+      const blocks = [...sec.querySelectorAll('tr, .ritem, .rsec h4, .rgrp, .bl, .timg, .nb, .kopf, .ph, .mitem')]
         .map(el => { const r = el.getBoundingClientRect(); return [r.top - top0, r.bottom - top0]; });
       let y = 0;
       while(y < H - 2){
@@ -769,7 +1035,7 @@ $('#fileImport').addEventListener('change', async e => {
 /* ================= Events ================= */
 function autoGrow(t){ t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; }
 function autoGrowAll(){ document.querySelectorAll('.entry textarea').forEach(autoGrow); }
-function openObs(o){ cur = o; tab = o.entries.length || o.name ? 'verlauf' : 'kopf'; currentMeths = []; renderEditor(); }
+function openObs(o){ o.media = o.media || []; cur = o; tab = o.entries.length || o.name ? 'verlauf' : 'kopf'; currentMeths = []; renderEditor(); }
 
 document.addEventListener('click', async e => {
   const t = e.target.closest('button, [data-open]');
@@ -806,7 +1072,12 @@ document.addEventListener('click', async e => {
       ta.value = pre + nl + ins + ta.value.slice(ta.selectionEnd ?? s);
       cur.sonstiges = ta.value; save(); ta.focus(); ta.selectionStart = ta.selectionEnd = s + nl.length + ins.length; return;
     }
-    case 'photo': $('#filePhoto').click(); return;
+    case 'photo': startPick('tafel-photo'); return;
+    case 'tscan': startPick('tafel-scan'); return;
+    case 'mphoto': startPick('media-photo'); return;
+    case 'mscan': startPick('media-scan'); return;
+    case 'mpick': startPick('media-photo', true); return;
+    case 'mdel': if(confirm('Löschen?')){ cur.media = cur.media.filter(x => x.id !== t.dataset.mid); save(); renderTab(); } return;
     case 'pdel': if(confirm('Foto löschen?')){ cur.photos.splice(+t.dataset.i, 1); save(); renderTab(); } return;
     case 'skundo': {
       const cv = $('#sk'), u = undoStack.pop(); if(!u) return;
@@ -854,6 +1125,7 @@ document.addEventListener('input', e => {
   const t = e.target;
   if(!cur) return;
   if(t.dataset.bind){ cur[t.dataset.bind] = t.value; save(); if(['name', 'thema'].includes(t.dataset.bind)) { const tt = document.querySelector('.top .title'); if(tt) tt.innerHTML = `${esc(cur.name || 'Neue Beobachtung')}${cur.thema ? ` <span class="muted">· ${esc(cur.thema)}</span>` : ''}`; } return; }
+  if(t.dataset.mcap){ const m = cur.media.find(x => x.id === t.dataset.mcap); if(m){ m.caption = t.value; save(); } return; }
   if(t.dataset.note !== undefined){ cur.notes[t.dataset.note] = t.value; save(); return; }
   if(t.id === 'sonst'){ cur.sonstiges = t.value; save(); return; }
   if(t.dataset.e){
