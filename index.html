@@ -313,6 +313,7 @@ const LA_ITEMS = LA_GROUPS.flatMap(g => g.items.map(([id, t]) => ({id, t, g:g.k,
 const LA_OPTS = [['ja', 'ja', 'pos'], ['nein', 'nein', 'neg'], ['nb', 'nicht beobachtet', 'neu']];
 const METHODEN = ['LV','UG','EA','PA','GA','Stationen','Präsentation','Film/Audio','Experiment','Sicherung'];
 const LESSON_MIN = 45;
+const APP_VERSION = '2026-10-07 b';
 
 /* ================= Helpers ================= */
 const $ = s => document.querySelector(s);
@@ -422,7 +423,7 @@ function renderList(){
   <main><div class="wrap">
     <input type="text" id="search" placeholder="Suchen nach Name, Fach, Klasse, Thema…" style="margin-bottom:14px">
     <div id="cards"></div>
-    <p class="muted" style="font-size:13px;margin-top:28px">Alle Daten werden ausschließlich lokal in diesem Browser gespeichert. Regelmäßig ein Backup exportieren.</p>
+    <p class="muted" style="font-size:13px;margin-top:28px">Alle Daten werden ausschließlich lokal in diesem Browser gespeichert. Regelmäßig ein Backup exportieren.<br>Version ${APP_VERSION}</p>
   </div></main>`;
   const draw = q => {
     q = (q || '').toLowerCase();
