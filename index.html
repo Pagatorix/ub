@@ -191,6 +191,9 @@ canvas#sk{display:block;width:100%;aspect-ratio:16/10;touch-action:none;backgrou
 #printArea .mitem{break-inside:avoid;margin-bottom:8pt}
 #printArea table.la td.c,#printArea table.la th.c{width:20mm;text-align:center;font-size:12pt}
 #printArea table.la th.c{font-size:9pt}
+#printArea table.la{font-size:9pt}
+#printArea table.la td{padding:2pt 5pt}
+#printArea table.la tr.lag td{background:#eee;font-weight:700}
 #printArea .mitem img{max-width:100%;display:block;margin:0 auto;border:1px solid #999}
 #printArea .mitem img.photo{max-height:115mm}
 #printArea .mitem img.scan{max-height:235mm}
@@ -268,24 +271,58 @@ const RASTER = [
   ]}
 ];
 // Leistungsanforderungen für Lehrkräfte (Realschule, Stand 7. April 2021, gültig für Beurteilung 2026)
-// 2.2.1.1 Unterrichtsplanung und Unterrichtsgestaltung – Einzelpunkte
-const LA_TITLE = '2.2.1.1 Unterrichtsplanung und Unterrichtsgestaltung';
-const LA_ITEMS = [
-  'Planung des Schuljahres durch eine sinnvolle Verteilung der Lehrplaninhalte',
-  'Vorbereitung des Unterrichts',
-  'Erschließung der Lerninhalte und Erreichen der Lernziele',
-  'Entwicklung von Fach-, Sozial- und Methodenkompetenzen',
-  'Beachtung der fachspezifischen Sicherheitsbestimmungen',
-  'Arbeitsformen im Unterricht',
-  'Handlungsorientierter und fächerübergreifender Unterricht',
-  'Lebensbezug',
-  'Nachhaltigkeit',
-  'Sicherung der Lernergebnisse',
-  'Methodenvielfalt',
-  'Einsatz von Medien',
-  'Gestaltung und Korrektur von Leistungsnachweisen',
-  'Überwachung der Hausaufgaben'
+// 2.2.1.1 Unterrichtsplanung und Unterrichtsgestaltung / 2.2.1.2 Unterrichtserfolg:
+// Stufenbeschreibungen BG–MA, in einzelne prüfbare Aussagen zerlegt.
+// neg: Stufe beschreibt Mängel – „ja“ bedeutet dort „Mangel trifft zu“ (rot).
+const LA_TITLE = 'Unterrichtsplanung und -gestaltung / Unterrichtserfolg (2.2.1.1/2.2.1.2)';
+const LA_GROUPS = [
+  {k:'BG', items:[
+    'Der Unterricht ist in jeder Hinsicht besonders gut.',
+    'Innovative Lehr- und Lernformen werden souverän beherrscht und angewendet.',
+    'Es werden dauerhaft sehr gute und nachhaltige Unterrichtserfolge erzielt.',
+    'Die Leistungserhebungen erfüllen in der Gestaltung ausnahmslos die Anforderungen.',
+    'Die Leistungserhebungen erfüllen in der inhaltlichen Konzeption ausnahmslos die Anforderungen.',
+    'Die Leistungserhebungen erfüllen in der Transparenz von Bewertung und Benotung ausnahmslos die Anforderungen.']},
+  {k:'UB', items:[
+    'Die Lehrkraft erteilt jederzeit einen abwechslungsreichen, innovativen Unterricht.',
+    'Methodische und didaktische Aspekte werden stets berücksichtigt: Handlungsorientierung.',
+    'Methodische und didaktische Aspekte werden stets berücksichtigt: fächerübergreifender Unterricht.',
+    'Methodische und didaktische Aspekte werden stets berücksichtigt: Entwicklung von Fach-, Sozial- und Methodenkompetenzen.',
+    'Der Unterricht führt zu überdurchschnittlichen Erfolgen.',
+    'Leistungsnachweise werden vorbildlich sowie vielseitig erstellt.',
+    'Leistungsnachweise werden hilfreich für die einzelne Schülerin/den einzelnen Schüler bewertet.',
+    'Hausaufgaben werden gezielt und umsichtig gestellt.',
+    'Hausaufgaben werden für die Schülerinnen und Schüler individuell fördernd ausgewertet.',
+    'Die Heftführung wird eingehend und vorbildlich überwacht.']},
+  {k:'VE', items:[
+    'Der Unterricht berücksichtigt die geforderten methodischen, didaktischen und fächerübergreifenden Aspekte.',
+    'Der Unterricht enthält sehr häufig handlungsorientierte Bausteine.',
+    'Die Lern- und Bildungsziele werden voll erreicht.',
+    'Das Grundwissen wird dauerhaft gesichert.',
+    'Die Leistungsnachweise werden korrekt erstellt.',
+    'Die Leistungsnachweise sind stets lehrplangerecht.',
+    'Die Leistungsnachweise sind immer eindeutig formuliert.',
+    'Die Transparenz der Bewertung ist gewährleistet.',
+    'Die Hausaufgaben werden sinnvoll gestellt und umfassend ausgewertet.',
+    'Hausaufgaben und Heftführung werden regelmäßig überwacht.']},
+  {k:'HM', items:[
+    'Der Unterricht ist fachgerecht.',
+    'Unterschiedliche Lehr- und Lernformen werden berücksichtigt.',
+    'Es werden sichtbare Unterrichtserfolge erzielt.',
+    'Die Lerninhalte werden sinnvoll über das Schuljahr verteilt.',
+    'Die Leistungsnachweise sind grundsätzlich nicht zu beanstanden.',
+    'Die Hausaufgaben werden angemessen besprochen.',
+    'Hausaufgaben und Heftführung werden im Allgemeinen überwacht.']},
+  {k:'MA', neg:true, items:[
+    'Der Unterricht weist didaktische und methodische Schwächen auf.',
+    'Die Lehrkraft ist bemüht.',
+    'Die Intentionen des Lehrplans werden nur mit Einschränkungen erfüllt.',
+    'Erstellung und Korrektur der Leistungsnachweise entsprechen nicht immer den Anforderungen.',
+    'Hausaufgaben und Heftführung werden nur sporadisch überwacht.']}
 ];
+// „Die Lehrkraft ist bemüht“ ist neutral formuliert, kein Mangel
+const LA_NEUTRAL = new Set(['MA2']);
+const LA_ITEMS = LA_GROUPS.flatMap(g => g.items.map((t, i) => ({id:`${g.k}${i + 1}`, t, g:g.k, neg:!!g.neg && !LA_NEUTRAL.has(`${g.k}${i + 1}`)})));
 const LA_OPTS = [['ja', 'ja', 'pos'], ['nein', 'nein', 'neg'], ['nb', 'nicht beobachtet', 'neu']];
 const METHODEN = ['LV','UG','EA','PA','GA','Stationen','Präsentation','Film/Audio','Experiment','Sicherung'];
 const LESSON_MIN = 45;
@@ -647,24 +684,40 @@ async function handlePicked(e){
 $('#filePhoto').addEventListener('change', handlePicked);
 $('#filePick').addEventListener('change', handlePicked);
 
-function laSummary(o){
-  const c = {ja:0, nein:0, nb:0}; LA_ITEMS.forEach(it => { const v = (o.la || {})[it]; if(v) c[v]++; });
-  return c;
+function laCount(o, items){
+  const c = {ja:0, nein:0, nb:0}; items.forEach(it => { const v = (o.la || {})[it.id]; if(v) c[v]++; });
+  c.offen = items.length - c.ja - c.nein - c.nb; return c;
 }
-function laSummaryHtml(){
-  const c = laSummary(cur), offen = LA_ITEMS.length - c.ja - c.nein - c.nb;
-  return `<span class="badge p">${c.ja} ja</span><span class="badge n">${c.nein} nein</span><span class="badge k">${c.nb} n. b.</span>${offen ? `<span class="muted" style="font-size:13px">${offen} offen</span>` : ''}`;
+function laSumHtml(items, neg){
+  const c = laCount(cur, items);
+  return `<span class="badge ${neg ? 'n' : 'p'}">${c.ja} ja</span><span class="badge ${neg ? 'p' : 'n'}">${c.nein} nein</span><span class="badge k">${c.nb} n. b.</span>${c.offen ? `<span class="muted" style="font-size:13px">${c.offen} offen</span>` : ''}`;
+}
+// Übersicht: Anteil „ja“ je Stufe
+function laTopHtml(){
+  const offen = laCount(cur, LA_ITEMS).offen;
+  return LA_GROUPS.map(g => { const items = LA_ITEMS.filter(i => i.g === g.k && !LA_NEUTRAL.has(i.id)), c = laCount(cur, items);
+    return `<span class="badge ${g.neg ? 'n' : 'k'}" title="ja / Aussagen">${g.k} ${c.ja}/${items.length}</span>`; }).join('')
+    + (offen ? `<span class="muted" style="font-size:13px">${offen} offen</span>` : '');
+}
+function laChip(it, k, l){
+  const cls = k === 'nb' ? 'neu' : it.id === 'MA2' ? 'neu' : (k === 'ja') !== it.neg ? 'pos' : 'neg';
+  return `<button class="chip ${cls} ${cur.la[it.id] === k ? 'on' : ''}" data-la="${it.id}" data-v="${k}">${l}</button>`;
 }
 function viewLA(){
   return `<div class="card">
-    <div class="sec-head" style="flex-wrap:wrap"><h2>${esc(LA_TITLE)}</h2><span id="laSum" class="row" style="gap:6px">${laSummaryHtml()}</span></div>
-    <p class="muted" style="font-size:13px;margin:0 0 6px">Leistungsanforderungen für Lehrkräfte (Realschule), Stand 7. April 2021 · erneut antippen hebt die Auswahl auf</p>
-    ${LA_ITEMS.map((it, i) => `<div class="item"><div class="lbl">${esc(it)}</div><div class="chips">
-      ${LA_OPTS.map(([k, l, cls]) => `<button class="chip ${cls} ${cur.la[it] === k ? 'on' : ''}" data-la="${i}" data-v="${k}">${l}</button>`).join('')}
-    </div></div>`).join('')}
-    <div class="row" style="margin-top:10px"><span class="spacer"></span><button class="btn" data-a="larest">Offene Punkte → nicht beobachtet</button></div>
+    <div class="sec-head" style="flex-wrap:wrap"><h2>${esc(LA_TITLE)}</h2><span id="laSum" class="row" style="gap:6px">${laTopHtml()}</span></div>
+    <p class="muted" style="font-size:13px;margin:0">Stufenbeschreibungen aus den Leistungsanforderungen für Lehrkräfte (Realschule), Stand 7. April 2021 · erneut antippen hebt die Auswahl auf</p>
+  </div>
+  ${LA_GROUPS.map(g => { const items = LA_ITEMS.filter(i => i.g === g.k); return `<div class="card" style="margin-top:14px">
+    <div class="sec-head" style="flex-wrap:wrap"><h2>${g.k}</h2><span class="row" style="gap:6px" data-lasum="${g.k}">${laSumHtml(items, g.neg)}</span></div>
+    ${g.neg ? '<p class="muted" style="font-size:13px;margin:0 0 4px">Mängelbeschreibung: „ja“ = trifft zu.</p>' : ''}
+    ${items.map(it => `<div class="item"><div class="lbl">${esc(it.t)}</div><div class="chips">
+      ${LA_OPTS.map(([k, l]) => laChip(it, k, l)).join('')}</div></div>`).join('')}
+  </div>`; }).join('')}
+  <div class="card" style="margin-top:14px">
+    <div class="row"><span class="spacer"></span><button class="btn" data-a="larest">Offene Punkte → nicht beobachtet</button></div>
     <div class="sec-note"><label class="f" for="laNote">Bemerkung</label>
-      <textarea id="laNote" rows="7" placeholder="Freie Bemerkung zur Unterrichtsplanung und Unterrichtsgestaltung…">${esc(cur.laNote)}</textarea></div>
+      <textarea id="laNote" rows="7" placeholder="Freie Bemerkung zur Unterrichtsplanung, Unterrichtsgestaltung und zum Unterrichtserfolg…">${esc(cur.laNote)}</textarea></div>
   </div>`;
 }
 
@@ -913,10 +966,15 @@ function toMarkdown(o){
     if(lines.length) L.push(`### ${sec.s}`, '', ...lines, '');
   }
   const la = o.la || {};
-  if(Object.keys(la).length || o.laNote){
+  if(LA_ITEMS.some(it => la[it.id]) || o.laNote){
     const lbl = {ja:'✅ ja', nein:'❌ nein', nb:'– nicht beobachtet'};
-    L.push(`## Leistungsanforderungen: ${LA_TITLE}`, '', '| Punkt | Bewertung |', '|---|---|',
-      ...LA_ITEMS.map(it => `| ${it} | ${la[it] ? lbl[la[it]] : ''} |`), '');
+    const lblNeg = {ja:'❌ ja (trifft zu)', nein:'✅ nein', nb:'– nicht beobachtet'};
+    L.push(`## Leistungsanforderungen: ${LA_TITLE}`, '');
+    LA_GROUPS.forEach(g => {
+      const items = LA_ITEMS.filter(i => i.g === g.k), c = laCount(o, items);
+      L.push(`### ${g.k} (${c.ja} ja · ${c.nein} nein · ${c.nb} n. b.)`, '', '| Aussage | Bewertung |', '|---|---|',
+        ...items.map(it => `| ${it.t} | ${la[it.id] ? (it.neg ? lblNeg : lbl)[la[it.id]] : ''} |`), '');
+    });
     if(o.laNote) L.push(`**Bemerkung:** ${o.laNote}`, '');
   }
   L.push('## Sonstiges', '', o.sonstiges || '_–_', '');
@@ -973,9 +1031,10 @@ function buildPrint(o){
   <section class="pp"><div class="rgrid">${raster}</div></section>
   <section class="pp"><div class="ph">Leistungsanforderungen</div>
     <div style="font-weight:700;margin-bottom:2pt">${esc(LA_TITLE)}</div>
-    <div style="font-size:8pt;color:#444;margin-bottom:6pt">Leistungsanforderungen für Lehrkräfte (Realschule), Stand 7. April 2021</div>
-    <table class="vl la"><thead><tr><th>Punkt</th><th class="c">ja</th><th class="c">nein</th><th class="c">nicht beob.</th></tr></thead><tbody>
-    ${LA_ITEMS.map(it => `<tr><td>${esc(it)}</td>${['ja', 'nein', 'nb'].map(k => `<td class="c">${(o.la || {})[it] === k ? '☒' : '☐'}</td>`).join('')}</tr>`).join('')}
+    <div style="font-size:8pt;color:#444;margin-bottom:6pt">Stufenbeschreibungen aus den Leistungsanforderungen für Lehrkräfte (Realschule), Stand 7. April 2021</div>
+    <table class="vl la"><thead><tr><th>Aussage</th><th class="c">ja</th><th class="c">nein</th><th class="c">nicht beob.</th></tr></thead><tbody>
+    ${LA_GROUPS.map(g => `<tr class="lag"><td colspan="4">${g.k}${g.neg ? ' <span style="font-weight:400">(Mängelbeschreibung: ja = trifft zu)</span>' : ''}</td></tr>` +
+      LA_ITEMS.filter(i => i.g === g.k).map(it => `<tr><td>${esc(it.t)}</td>${['ja', 'nein', 'nb'].map(k => `<td class="c">${(o.la || {})[it.id] === k ? '☒' : '☐'}</td>`).join('')}</tr>`).join('')).join('')}
     </tbody></table>
     <div style="font-weight:700;margin:10pt 0 3pt">Bemerkung</div>
     <div class="box" style="min-height:60mm">${(o.laNote || '').split('\n').map(l => `<div class="bl">${esc(l)}</div>`).join('')}</div></section>
@@ -1133,7 +1192,7 @@ document.addEventListener('click', async e => {
     }
     case 'photo': startPick('tafel-photo'); return;
     case 'tscan': startPick('tafel-scan'); return;
-    case 'larest': LA_ITEMS.forEach(it => { if(!cur.la[it]) cur.la[it] = 'nb'; }); save(); renderTab(); return;
+    case 'larest': LA_ITEMS.forEach(it => { if(!cur.la[it.id]) cur.la[it.id] = 'nb'; }); save(); renderTab(); return;
     case 'mphoto': startPick('media-photo'); return;
     case 'mscan': startPick('media-scan'); return;
     case 'mpick': startPick('media-photo', true); return;
@@ -1155,10 +1214,12 @@ document.addEventListener('click', async e => {
     pen = t.dataset.pen === 'eraser' ? {color:pen.color, eraser:true} : {color:t.dataset.pen, eraser:false}; return;
   }
   if(t.dataset.la){
-    const it = LA_ITEMS[+t.dataset.la], v = t.dataset.v;
-    if(cur.la[it] === v) delete cur.la[it]; else cur.la[it] = v;
-    t.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.v === cur.la[it]));
-    $('#laSum').innerHTML = laSummaryHtml(); save(); return;
+    const id = t.dataset.la, v = t.dataset.v, g = LA_ITEMS.find(i => i.id === id).g;
+    if(cur.la[id] === v) delete cur.la[id]; else cur.la[id] = v;
+    t.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.v === cur.la[id]));
+    $('#laSum').innerHTML = laTopHtml();
+    document.querySelector(`[data-lasum="${g}"]`).innerHTML = laSumHtml(LA_ITEMS.filter(i => i.g === g), LA_GROUPS.find(x => x.k === g).neg);
+    save(); return;
   }
   if(t.dataset.ck){
     const [si, gi, ii] = t.dataset.ck.split('.').map(Number);
