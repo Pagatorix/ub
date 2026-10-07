@@ -1,5 +1,5 @@
 // Offline-Unterstützung: Netz zuerst (damit Updates sofort ankommen), sonst Cache.
-const CACHE = 'ub-v4';
+const CACHE = 'ub-v5';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png', './vendor/jspdf.umd.min.js', './vendor/html2canvas.min.js'];
 
 self.addEventListener('install', e => {
