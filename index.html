@@ -271,58 +271,45 @@ const RASTER = [
   ]}
 ];
 // Leistungsanforderungen für Lehrkräfte (Realschule, Stand 7. April 2021, gültig für Beurteilung 2026)
-// 2.2.1.1 Unterrichtsplanung und Unterrichtsgestaltung / 2.2.1.2 Unterrichtserfolg:
+// 2.2.1.1 Unterrichtsplanung und Unterrichtsgestaltung (Stufentexte zu 2.2.1.1/2.2.1.2):
 // Stufenbeschreibungen BG–MA, in einzelne prüfbare Aussagen zerlegt.
 // neg: Stufe beschreibt Mängel – „ja“ bedeutet dort „Mangel trifft zu“ (rot).
-const LA_TITLE = 'Unterrichtsplanung und -gestaltung / Unterrichtserfolg (2.2.1.1/2.2.1.2)';
+const LA_TITLE = 'Unterrichtsplanung und Unterrichtsgestaltung (2.2.1.1)';
+// Aussagen zu Leistungsnachweisen und zu Erfolgen sind bewusst entfernt; IDs bleiben stabil (gespeicherte Bewertungen).
 const LA_GROUPS = [
   {k:'BG', items:[
-    'Der Unterricht ist in jeder Hinsicht besonders gut.',
-    'Innovative Lehr- und Lernformen werden souverän beherrscht und angewendet.',
-    'Es werden dauerhaft sehr gute und nachhaltige Unterrichtserfolge erzielt.',
-    'Die Leistungserhebungen erfüllen in der Gestaltung ausnahmslos die Anforderungen.',
-    'Die Leistungserhebungen erfüllen in der inhaltlichen Konzeption ausnahmslos die Anforderungen.',
-    'Die Leistungserhebungen erfüllen in der Transparenz von Bewertung und Benotung ausnahmslos die Anforderungen.']},
+    ['BG1', 'Der Unterricht ist in jeder Hinsicht besonders gut.'],
+    ['BG2', 'Innovative Lehr- und Lernformen werden souverän beherrscht und angewendet.']]},
   {k:'UB', items:[
-    'Die Lehrkraft erteilt jederzeit einen abwechslungsreichen, innovativen Unterricht.',
-    'Methodische und didaktische Aspekte werden stets berücksichtigt: Handlungsorientierung.',
-    'Methodische und didaktische Aspekte werden stets berücksichtigt: fächerübergreifender Unterricht.',
-    'Methodische und didaktische Aspekte werden stets berücksichtigt: Entwicklung von Fach-, Sozial- und Methodenkompetenzen.',
-    'Der Unterricht führt zu überdurchschnittlichen Erfolgen.',
-    'Leistungsnachweise werden vorbildlich sowie vielseitig erstellt.',
-    'Leistungsnachweise werden hilfreich für die einzelne Schülerin/den einzelnen Schüler bewertet.',
-    'Hausaufgaben werden gezielt und umsichtig gestellt.',
-    'Hausaufgaben werden für die Schülerinnen und Schüler individuell fördernd ausgewertet.',
-    'Die Heftführung wird eingehend und vorbildlich überwacht.']},
+    ['UB1', 'Die Lehrkraft erteilt jederzeit einen abwechslungsreichen, innovativen Unterricht.'],
+    ['UB2', 'Methodische und didaktische Aspekte werden stets berücksichtigt: Handlungsorientierung.'],
+    ['UB3', 'Methodische und didaktische Aspekte werden stets berücksichtigt: fächerübergreifender Unterricht.'],
+    ['UB4', 'Methodische und didaktische Aspekte werden stets berücksichtigt: Entwicklung von Fach-, Sozial- und Methodenkompetenzen.'],
+    ['UB8', 'Hausaufgaben werden gezielt und umsichtig gestellt.'],
+    ['UB9', 'Hausaufgaben werden für die Schülerinnen und Schüler individuell fördernd ausgewertet.'],
+    ['UB10', 'Die Heftführung wird eingehend und vorbildlich überwacht.']]},
   {k:'VE', items:[
-    'Der Unterricht berücksichtigt die geforderten methodischen, didaktischen und fächerübergreifenden Aspekte.',
-    'Der Unterricht enthält sehr häufig handlungsorientierte Bausteine.',
-    'Die Lern- und Bildungsziele werden voll erreicht.',
-    'Das Grundwissen wird dauerhaft gesichert.',
-    'Die Leistungsnachweise werden korrekt erstellt.',
-    'Die Leistungsnachweise sind stets lehrplangerecht.',
-    'Die Leistungsnachweise sind immer eindeutig formuliert.',
-    'Die Transparenz der Bewertung ist gewährleistet.',
-    'Die Hausaufgaben werden sinnvoll gestellt und umfassend ausgewertet.',
-    'Hausaufgaben und Heftführung werden regelmäßig überwacht.']},
+    ['VE1', 'Der Unterricht berücksichtigt die geforderten methodischen, didaktischen und fächerübergreifenden Aspekte.'],
+    ['VE2', 'Der Unterricht enthält sehr häufig handlungsorientierte Bausteine.'],
+    ['VE3', 'Die Lern- und Bildungsziele werden voll erreicht.'],
+    ['VE4', 'Das Grundwissen wird dauerhaft gesichert.'],
+    ['VE9', 'Die Hausaufgaben werden sinnvoll gestellt und umfassend ausgewertet.'],
+    ['VE10', 'Hausaufgaben und Heftführung werden regelmäßig überwacht.']]},
   {k:'HM', items:[
-    'Der Unterricht ist fachgerecht.',
-    'Unterschiedliche Lehr- und Lernformen werden berücksichtigt.',
-    'Es werden sichtbare Unterrichtserfolge erzielt.',
-    'Die Lerninhalte werden sinnvoll über das Schuljahr verteilt.',
-    'Die Leistungsnachweise sind grundsätzlich nicht zu beanstanden.',
-    'Die Hausaufgaben werden angemessen besprochen.',
-    'Hausaufgaben und Heftführung werden im Allgemeinen überwacht.']},
+    ['HM1', 'Der Unterricht ist fachgerecht.'],
+    ['HM2', 'Unterschiedliche Lehr- und Lernformen werden berücksichtigt.'],
+    ['HM4', 'Die Lerninhalte werden sinnvoll über das Schuljahr verteilt.'],
+    ['HM6', 'Die Hausaufgaben werden angemessen besprochen.'],
+    ['HM7', 'Hausaufgaben und Heftführung werden im Allgemeinen überwacht.']]},
   {k:'MA', neg:true, items:[
-    'Der Unterricht weist didaktische und methodische Schwächen auf.',
-    'Die Lehrkraft ist bemüht.',
-    'Die Intentionen des Lehrplans werden nur mit Einschränkungen erfüllt.',
-    'Erstellung und Korrektur der Leistungsnachweise entsprechen nicht immer den Anforderungen.',
-    'Hausaufgaben und Heftführung werden nur sporadisch überwacht.']}
+    ['MA1', 'Der Unterricht weist didaktische und methodische Schwächen auf.'],
+    ['MA2', 'Die Lehrkraft ist bemüht.'],
+    ['MA3', 'Die Intentionen des Lehrplans werden nur mit Einschränkungen erfüllt.'],
+    ['MA5', 'Hausaufgaben und Heftführung werden nur sporadisch überwacht.']]}
 ];
 // „Die Lehrkraft ist bemüht“ ist neutral formuliert, kein Mangel
 const LA_NEUTRAL = new Set(['MA2']);
-const LA_ITEMS = LA_GROUPS.flatMap(g => g.items.map((t, i) => ({id:`${g.k}${i + 1}`, t, g:g.k, neg:!!g.neg && !LA_NEUTRAL.has(`${g.k}${i + 1}`)})));
+const LA_ITEMS = LA_GROUPS.flatMap(g => g.items.map(([id, t]) => ({id, t, g:g.k, neg:!!g.neg && !LA_NEUTRAL.has(id)})));
 const LA_OPTS = [['ja', 'ja', 'pos'], ['nein', 'nein', 'neg'], ['nb', 'nicht beobachtet', 'neu']];
 const METHODEN = ['LV','UG','EA','PA','GA','Stationen','Präsentation','Film/Audio','Experiment','Sicherung'];
 const LESSON_MIN = 45;
@@ -717,7 +704,7 @@ function viewLA(){
   <div class="card" style="margin-top:14px">
     <div class="row"><span class="spacer"></span><button class="btn" data-a="larest">Offene Punkte → nicht beobachtet</button></div>
     <div class="sec-note"><label class="f" for="laNote">Bemerkung</label>
-      <textarea id="laNote" rows="7" placeholder="Freie Bemerkung zur Unterrichtsplanung, Unterrichtsgestaltung und zum Unterrichtserfolg…">${esc(cur.laNote)}</textarea></div>
+      <textarea id="laNote" rows="7" placeholder="Freie Bemerkung zur Unterrichtsplanung und Unterrichtsgestaltung…">${esc(cur.laNote)}</textarea></div>
   </div>`;
 }
 
